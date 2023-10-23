@@ -5,6 +5,7 @@ import com.zeroc.Ice.Current;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
+import java.util.ArrayList;
 
 public class CallbackSenderI implements Demo.CallbackSender{
     private List<ClientObject> clients = new ArrayList<>();
@@ -39,9 +40,25 @@ public class CallbackSenderI implements Demo.CallbackSender{
 
     @Override
     public void registerClient(String name, CallbackReceiverPrx proxy, Current current) {
+        ClientObject clientObject = new ClientObject(name, proxy, current);
         if(findClient(name) == null){
-            clients.put(name,proxy);
+            clients.add(clientObject);
         }
+    }
+
+    @Override
+    public void sendMessageToOne(String hostname, String message, Current current) {
+
+    }
+
+    @Override
+    public void sendMessageToAll(String message, Current current) {
+
+    }
+
+    @Override
+    public void sendMessageToGroup(String groupName, String message, Current current) {
+
     }
 
     private ClientObject findClient(String name){

@@ -1,3 +1,6 @@
+import Demo.CallbackReceiverPrx;
+import com.zeroc.Ice.Current;
+
 public class ClientObject {
 
     private String name;
