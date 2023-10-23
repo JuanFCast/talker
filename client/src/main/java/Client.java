@@ -109,11 +109,7 @@ public class Client {
 
     private static void menu()
     {
-        System.out.println(
-                "usage:\n" +
-                        "t: send callback\n" +
-                        "s: shutdown server\n" +
-                        "x: exit\n" +
-                        "?: help\n");
+        System.out.println("1. Registrar cliente \n" +
+                "2. Crear grupo");
     }
 }

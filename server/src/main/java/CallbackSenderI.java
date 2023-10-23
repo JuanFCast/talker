@@ -4,9 +4,10 @@ import com.zeroc.Ice.Current;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
 public class CallbackSenderI implements Demo.CallbackSender{
-    private Map<String, CallbackReceiverPrx> clients= new HashMap<>();
+    private List<ClientObject> clients = new ArrayList<>();
 
     @Override
     public void initiateCallback(CallbackReceiverPrx proxy, com.zeroc.Ice.Current current)
@@ -38,7 +39,17 @@ public class CallbackSenderI implements Demo.CallbackSender{
 
     @Override
     public void registerClient(String name, CallbackReceiverPrx proxy, Current current) {
-        clients.put(name,proxy);
+        if(findClient(name) == null){
+            clients.put(name,proxy);
+        }
+    }
 
+    private ClientObject findClient(String name){
+        for (int i = 0; i < clients.size(); i++) {
+            if(clients.get(i).getName().equals(name)){
+                return clients.get(i);
+            }
+        }
+        return null;
     }
 }
