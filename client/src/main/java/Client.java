@@ -71,27 +71,9 @@ public class Client {
                 {
                     break;
                 }
-                if(line.equals("r"))
+                if(line.equals("t"))
                 {
-                    System.out.println("Ingrese su nombre de usuario:");
-                    String username = in.readLine();
-                    sender.registerUser(username, receiver);
-                }
-                else if(line.equals("m"))
-                {
-                    System.out.println("Ingrese el nombre del destinatario:");
-                    String targetUser = in.readLine();
-                    System.out.println("Ingrese su mensaje:");
-                    String message = in.readLine();
-                    sender.sendMessage(receiver, targetUser, message);
-                }
-                else if(line.equals("v"))
-                {
-                    List<String> messages = receiver.getReceivedMessages();
-                    for(String msg : messages)
-                    {
-                        System.out.println(msg);
-                    }
+                    sender.initiateCallback(receiver);
                 }
                 else if(line.equals("s"))
                 {
@@ -129,12 +111,9 @@ public class Client {
     {
         System.out.println(
                 "usage:\n" +
-                        "r: registrar usuario\n" +
-                        "m: enviar mensaje a un usuario\n" +
-                        "v: ver mensajes recibidos\n" +
+                        "t: send callback\n" +
                         "s: shutdown server\n" +
                         "x: exit\n" +
                         "?: help\n");
     }
-
 }
