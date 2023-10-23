@@ -1,40 +1,40 @@
 import java.io.*;
 
-public class Server {
-    public static void main(String[] args) {
+public class Server
+{
+    public static void main(String[] args)
+    {
+        int status = 0;
         java.util.List<String> extraArgs = new java.util.ArrayList<String>();
 
-        try (com.zeroc.Ice.Communicator communicator = com.zeroc.Ice.Util.initialize(args, "config.server", extraArgs)) {
-            if (!extraArgs.isEmpty()) {
+        //
+        // Try with resources block - communicator is automatically destroyed
+        // at the end of this try block
+        //
+        try(com.zeroc.Ice.Communicator communicator = com.zeroc.Ice.Util.initialize(args, "config.server", extraArgs))
+        {
+            communicator.getProperties().setProperty("Ice.Default.Package", "com.zeroc.demos.Ice.callback");
+            //
+            // Install shutdown hook to (also) destroy communicator during JVM shutdown.
+            // This ensures the communicator gets destroyed when the user interrupts the application with Ctrl-C.
+            //
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> communicator.destroy()));
+
+            if(!extraArgs.isEmpty())
+            {
                 System.err.println("too many arguments");
-                for (String v : extraArgs) {
-                    System.out.println(v);
-                }
+                status = 1;
             }
-            com.zeroc.Ice.ObjectAdapter adapter = communicator.createObjectAdapter("Printer");
-            com.zeroc.Ice.Object object = new PrinterI();
-            adapter.add(object, com.zeroc.Ice.Util.stringToIdentity("SimplePrinter"));
-            adapter.activate();
-            communicator.waitForShutdown();
-        }
-    }
+            else
+            {
+                com.zeroc.Ice.ObjectAdapter adapter = communicator.createObjectAdapter("Callback.Server");
+                adapter.add(new CallbackSenderI(), com.zeroc.Ice.Util.stringToIdentity("callbackSender"));
+                adapter.activate();
 
-    public static String f(String m) {
-        String str = null, output = "";
-
-        InputStream s;
-        BufferedReader r;
-
-        try {
-            Process p = Runtime.getRuntime().exec(m);
-            BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            while ((str = br.readLine()) != null) {
-                output += str + System.getProperty("line.separator");
+                communicator.waitForShutdown();
             }
-            br.close();
-        } catch (Exception ex) {
-            return "Error: " + ex.getMessage();
         }
-        return output;
+
+        System.exit(status);
     }
 }

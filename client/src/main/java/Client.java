@@ -1,179 +1,140 @@
-import java.util.Scanner;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+
+import Demo.CallbackReceiverPrx;
+import Demo.CallbackSenderPrx;
+import com.zeroc.Ice.LocalException;
 
 public class Client {
-    public static void main(String[] args) {
+    public static void main(String[] args)
+    {
+        int status = 0;
         java.util.List<String> extraArgs = new java.util.ArrayList<>();
 
-        try (com.zeroc.Ice.Communicator communicator = com.zeroc.Ice.Util.initialize(args, "config.client", extraArgs)) {
-            Demo.PrinterPrx twoway = Demo.PrinterPrx.checkedCast(
-                    communicator.propertyToProxy("Printer.Proxy")).ice_twoway().ice_secure(false);
+        //
+        // Try with resources block - communicator is automatically destroyed
+        // at the end of this try block
+        //
+        try(com.zeroc.Ice.Communicator communicator = com.zeroc.Ice.Util.initialize(args, "config.client", extraArgs))
+        {
+            communicator.getProperties().setProperty("Ice.Default.Package", "com.zeroc.demos.Ice.callback");
 
-            if (twoway == null) {
-                throw new Error("Invalid proxy");
+            if(!extraArgs.isEmpty())
+            {
+                System.err.println("too many arguments");
+                status = 1;
             }
-
-            Scanner scanner = new Scanner(System.in);
-
-            menu(twoway, scanner);
-        }
-    }
-
-    private static void menu(Demo.PrinterPrx twoway, Scanner scanner){
-        int option;
-
-        do{
-            System.out.println("Select an option: \n" +
-                    "1. Send a message\n" +
-                    "2. Do throughput test\n" +
-                    "3. Do response time test\n" +
-                    "4. Do missing rate test\n" +
-                    "5. Do unprocessed rate test\n" +
-                    "6. Exit");
-            option = scanner.nextInt();
-            scanner.nextLine();
-
-            switch (option){
-                case 1:
-                    send(twoway, scanner);
-		    break;
-                case 2:
-                    System.out.println(evaluateThroughput(twoway, scanner));
-		    break;
-                case 3:
-                    System.out.println(evaluateResponseTime(twoway));
-		    break;
-                case 4:
-                    System.out.println(evaluateMissingRate(twoway, scanner));
-		    break;
-                case 5:
-                    System.out.println(evaluateUnprocessedRate(twoway, scanner));
-		    break;
-            }
-        }while(option >= 1 && option <=5);
-    }
-
-    private static void send(Demo.PrinterPrx twoway, Scanner scanner){
-        if (twoway == null) {
-            throw new Error("Invalid proxy");
-        }
-
-        String username = System.getProperty("user.name");
-        String hostname = getHostname();
-
-        while (true) {
-            System.out.print("Enter a message or enter exit to get out ");
-            String message = scanner.nextLine();
-
-            if (message.equalsIgnoreCase("exit")) {
-                break;
-            }
-
-            String formattedMessage = username + ":" + hostname + ":" + message;
-            String response = twoway.printString(formattedMessage);
-            System.out.println("Server Response: " + response); 
-        }
-    }
-
-    private static String send(Demo.PrinterPrx twoway, String message) throws Exception{
-        if (twoway == null) {
-            throw new Error("Invalid proxy");
-        }
-
-        String username = System.getProperty("user.name");
-        String hostname = getHostname();
-
-        String formattedMessage = username + ":" + hostname + ":" + message;
-        return twoway.printString(formattedMessage);
-    }
-
-    private static String evaluateThroughput(Demo.PrinterPrx twoway, Scanner scanner){
-        System.out.println("Enter the number of requests");
-        int numberOfRequests = scanner.nextInt();
-        scanner.nextLine();
-
-        long startTime = System.currentTimeMillis();
-
-        for (int i = 0; i < numberOfRequests; i++) {
-            try {
-                send(twoway, "!ls");
-            } catch (Exception e) {
-                e.printStackTrace();
+            else
+            {
+                status = run(communicator);
             }
         }
-
-        long endTime = System.currentTimeMillis();
-        long elapsedTime = endTime - startTime;
-
-        double throughput = (double) numberOfRequests / (elapsedTime / 1000.0);
-
-        return "Elapsed time in ms: " + elapsedTime + "\n" +
-                "Throughput (request per second): " + throughput;
+        System.exit(status);
     }
 
-    private static String evaluateResponseTime(Demo.PrinterPrx twoway){
-        long startTime = System.currentTimeMillis();
-        try {
-            send(twoway, "!ls");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        long endTime = System.currentTimeMillis();
-
-        long responseTime = endTime - startTime;
-
-        return "Response time in ms: " + responseTime;
-    }
-
-    private static String evaluateMissingRate(Demo.PrinterPrx twoway, Scanner scanner){
-        System.out.println("Enter the number of requests");
-        int numberOfRequests = scanner.nextInt();
-        scanner.nextLine();
-
-        int lostRequests = 0;
-
-        for (int i = 0; i < numberOfRequests; i++) {
-            try {
-                send(twoway, "!ls");
-            }catch (Exception e){
-                lostRequests++;
-            }
+    private static int run(com.zeroc.Ice.Communicator communicator)
+    {
+        CallbackSenderPrx sender = CallbackSenderPrx.checkedCast(
+                communicator.propertyToProxy("CallbackSender.Proxy")).ice_twoway().ice_timeout(-1).ice_secure(false);
+        if(sender == null)
+        {
+            System.err.println("invalid proxy");
+            return 1;
         }
 
-        double missingRate = (double) lostRequests / numberOfRequests;
+        com.zeroc.Ice.ObjectAdapter adapter = communicator.createObjectAdapter("Callback.Client");
+        adapter.add(new CallbackReceiverI(), com.zeroc.Ice.Util.stringToIdentity("callbackReceiver"));
+        adapter.activate();
 
-        return "Lost requests: " + lostRequests + "\n" +
-                "Missing rate: " + missingRate;
-    }
+        CallbackReceiverPrx receiver =
+                CallbackReceiverPrx.uncheckedCast(adapter.createProxy(
+                        com.zeroc.Ice.Util.stringToIdentity("callbackReceiver")));
 
-    private static String evaluateUnprocessedRate(Demo.PrinterPrx twoway, Scanner scanner){
-        System.out.println("Enter the number of requests");
-        int numberOfRequests = scanner.nextInt();
-        scanner.nextLine();
+        menu();
 
-        int unprocessedRequest = 0;
+        java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(System.in));
 
-        for (int i = 0; i < numberOfRequests; i++) {
-            try {
-                String response = send(twoway, "!ls");
-                if(response.contains("Error")){
-                    unprocessedRequest++;
+        String line = null;
+        do
+        {
+            try
+            {
+                System.out.print("==> ");
+                System.out.flush();
+                line = in.readLine();
+                if(line == null)
+                {
+                    break;
                 }
-            } catch (Exception e) {
-                unprocessedRequest++;
-                e.printStackTrace();
+                if(line.equals("r"))
+                {
+                    System.out.println("Ingrese su nombre de usuario:");
+                    String username = in.readLine();
+                    sender.registerUser(username, receiver);
+                }
+                else if(line.equals("m"))
+                {
+                    System.out.println("Ingrese el nombre del destinatario:");
+                    String targetUser = in.readLine();
+                    System.out.println("Ingrese su mensaje:");
+                    String message = in.readLine();
+                    sender.sendMessage(receiver, targetUser, message);
+                }
+                else if(line.equals("v"))
+                {
+                    List<String> messages = receiver.getReceivedMessages();
+                    for(String msg : messages)
+                    {
+                        System.out.println(msg);
+                    }
+                }
+                else if(line.equals("s"))
+                {
+                    sender.shutdown();
+                }
+                else if(line.equals("x"))
+                {
+                    // Nothing to do
+                }
+                else if(line.equals("?"))
+                {
+                    menu();
+                }
+                else
+                {
+                    System.out.println("unknown command `" + line + "'");
+                    menu();
+                }
+            }
+            catch(java.io.IOException ex)
+            {
+                ex.printStackTrace();
+            }
+            catch(com.zeroc.Ice.LocalException ex)
+            {
+                ex.printStackTrace();
             }
         }
+        while(!line.equals("x"));
 
-        double unprocessedRate = (double) unprocessedRequest / numberOfRequests;
-
-        return "Unprocessed rate: " + unprocessedRate;
+        return 0;
     }
 
-    private static String getHostname() {
-        try {
-            return java.net.InetAddress.getLocalHost().getHostName();
-        } catch (java.net.UnknownHostException ex) {
-            return "Unknown";
-        }
+    private static void menu()
+    {
+        System.out.println(
+                "usage:\n" +
+                        "r: registrar usuario\n" +
+                        "m: enviar mensaje a un usuario\n" +
+                        "v: ver mensajes recibidos\n" +
+                        "s: shutdown server\n" +
+                        "x: exit\n" +
+                        "?: help\n");
     }
+
 }
