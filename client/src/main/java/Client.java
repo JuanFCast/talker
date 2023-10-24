@@ -77,7 +77,7 @@ public class Client {
                 {
                     sender.listClients();
                 }
-                else if(line.equals("x"))
+                else if(line.equals("3"))
                 {
                     System.out.println("This are the users");
                     sender.listClients();
@@ -90,11 +90,24 @@ public class Client {
 
                     sender.createGroup(users, groupName);
                 }
-                else if(line.equals("?"))
+                else if(line.equals("4"))
                 {
-                    menu();
-                }
-                else
+                    System.out.println("who's the message for");
+                    String user = in.readLine();
+
+                    System.out.println("Enter the message");
+                    String message = in.readLine();
+
+                    sender.sendMessageToOne(user, message);
+                } else if (line.equals("5")) {
+                    System.out.println("Which group is he message for?");
+                    String groupName = in.readLine();
+
+                    System.out.println("Enter the message");
+                    String message = in.readLine();
+
+                    sender.sendMessageToGroup(groupName, message);
+                } else
                 {
                     System.out.println("unknown command `" + line + "'");
                     menu();
@@ -109,7 +122,7 @@ public class Client {
                 ex.printStackTrace();
             }
         }
-        while(!line.equals("x"));
+        while(!line.equals("6"));
 
         return 0;
     }
@@ -119,7 +132,9 @@ public class Client {
         System.out.println("1. Register user \n" +
                 "2. List clients \n" +
                 "3. Create Group \n" +
-                "4. Modify group \n");
+                "4. Send message  \n" +
+                "5. Send message to group \n" +
+                "6. Exit \n");
     }
 
     private static String getUsernameAndHostname() {
@@ -133,8 +148,4 @@ public class Client {
         return username + "@" + hostname;
     }
 
-    private String register(){
-
-        return
-    }
 }
