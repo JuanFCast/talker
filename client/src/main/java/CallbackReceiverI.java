@@ -1,4 +1,5 @@
 import com.zeroc.Ice.Current;
+import Demo.CallbackReceiverPrx;
 
 public class CallbackReceiverI implements Demo.CallbackReceiver{
 

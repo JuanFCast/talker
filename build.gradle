@@ -16,6 +16,7 @@ subprojects {
     // Both Client and Server projects share the Printer.ice Slice definitions
     //
     slice {
+        iceHome = '/opt/homebrew'
         java {
             files = [file("../Callback.ice")]
         }

@@ -1,14 +1,7 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.net.UnknownHostException;
-import java.util.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
-
 import Demo.CallbackReceiverPrx;
 import Demo.CallbackSenderPrx;
-import com.zeroc.Ice.LocalException;
+
+import java.net.UnknownHostException;
 
 public class Client {
     public static void main(String[] args)
@@ -64,6 +57,7 @@ public class Client {
         {
             try
             {
+                menu();
                 System.out.print("==> ");
                 System.out.flush();
                 line = in.readLine();
@@ -71,17 +65,30 @@ public class Client {
                 {
                     break;
                 }
-                if(line.equals("t"))
+                if(line.equals("1"))
                 {
-                    sender.initiateCallback(receiver);
+                    System.out.println("Enter the user name");
+                    String username = in.readLine();
+
+                    sender.registerClient(username, receiver);
+
                 }
-                else if(line.equals("s"))
+                else if(line.equals("2"))
                 {
-                    sender.shutdown();
+                    sender.listClients();
                 }
                 else if(line.equals("x"))
                 {
-                    // Nothing to do
+                    System.out.println("This are the users");
+                    sender.listClients();
+
+                    System.out.println("Type the users that you want to include in this format: name,name,name");
+                    String users = in.readLine();
+
+                    System.out.println("Enter the group name");
+                    String groupName = in.readLine();
+
+                    sender.createGroup(users, groupName);
                 }
                 else if(line.equals("?"))
                 {
@@ -109,7 +116,25 @@ public class Client {
 
     private static void menu()
     {
-        System.out.println("1. Registrar cliente \n" +
-                "2. Crear grupo");
+        System.out.println("1. Register user \n" +
+                "2. List clients \n" +
+                "3. Create Group \n" +
+                "4. Modify group \n");
+    }
+
+    private static String getUsernameAndHostname() {
+        String username = System.getProperty("user.name");
+        String hostname = "unknown";
+        try {
+            hostname = java.net.InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+        return username + "@" + hostname;
+    }
+
+    private String register(){
+
+        return
     }
 }
